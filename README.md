@@ -1,8 +1,8 @@
-![Library Version](https://img.shields.io/badge/Version-1.0.2-green)
+![Library Version](https://img.shields.io/badge/Version-2.0.0-green)
 
 # AIS Library
  
-## AIS Magellan SDK for BC95 module Lite version
+## AIS Magellan SDK for BC95 and BC95-G module Lite version
 AIS Magellan Library, a software development kit used on arduino platform, have been developed for 
 Magellan IoT Platform.  Support Arduino UNO.
 
@@ -49,4 +49,4 @@ please use 0 or 1 to send status\
 payload={"Lamp":0} 
 payload={"Lamp":1}
 ```
-**Note** please see more in the example code 
+**Note** In this case, the device has already preload code then you just plug and play the development kit. If you have any questions, please see more details at https://www.facebook.com/AISDEVIO

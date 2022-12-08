@@ -27,7 +27,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Magellan_BC95_lite v1.0.2 NB-IoT Magellan Platform .
+Magellan_BC95_lite v2.0.0 NB-IoT Magellan Platform .
 Quectel BC95
 NB-IoT with AT command
 
@@ -42,10 +42,11 @@ and supported only Magellan IoT Platform
  
 Author: Device Innovation team     
 Create Date: 3 February 2020. 
-Modified: 06 June 2020.
+Modified: 21 June 2021.
 
 (*v1.0.1 customize dynamic memory and add auto reset function)
 (*v1.0.2 bug fix logic response code only 40300 and limit maximum payload 100 character)
+(*v2.0.0 support Quectel BC95-G)
 Released for private usage.
 */
 
@@ -126,7 +127,7 @@ bool Magellan_BC95_lite::begin()
   #endif 
 
   Serial.println();
-  Serial.println(F("          AIS NB-IoT Magellan_BC95_lite V1.0.2"));
+  Serial.println(F("          AIS NB-IoT Magellan_BC95_lite V2.0.0"));
 
   /*---------------------------------------
       Initial BC95 Module 
@@ -157,7 +158,7 @@ bool Magellan_BC95_lite::begin()
 
 void Magellan_BC95_lite::reboot_module()
 {
-  Serial.println(F(">>Rebooting "));
+  Serial.print(F(">>Rebooting "));
   _Serial->println(F("AT+NRB"));
   delay(100);
 
@@ -258,6 +259,18 @@ void Magellan_BC95_lite::setup_module()
     }
   }
 
+  //Check module
+  _Serial->println(F("AT+CGMM"));
+  while(1){
+    if(_Serial->available()){
+      data_input=_Serial->readStringUntil('\n');
+      if(data_input.indexOf(F("OK"))!=-1) break;
+      else{
+        if(data_input.indexOf(F("BC95GJB-02-STD"))!=-1) bc95=false;
+        else if(data_input.indexOf(F("BC95HB-02-STD_900"))!=-1) bc95=true;
+      }
+    }
+  }
 
   _Serial->println(F("AT+CGATT=1"));
   delay(500);
@@ -308,8 +321,13 @@ void Magellan_BC95_lite::setup_module()
       Create network socket
     -------------------------------------
   */  
-  data_input="";
-  _Serial->println(F("AT+NSOCR=DGRAM,17,5684,1"));
+  data_input="";  
+  if(bc95){
+    _Serial->println(F("AT+NSOCR=DGRAM,17,5684,1"));
+  }
+  else{
+    _Serial->println(F("AT+NSOCR=DGRAM,17,0"));
+  } 
   delay(500); 
   _serial_flush(); 
 
@@ -625,8 +643,13 @@ void Magellan_BC95_lite::Msgsend(char *payload_c,unsigned int payload_len,bool r
       if(printstate) Serial.print(Msg_ID);
       if(printstate) Serial.print(F(" "));
       if(printstate) Serial.println(payload_c);
-
-      _Serial->print(F("AT+NSOST=0,"));
+      
+      if(bc95){
+        _Serial->print(F("AT+NSOST=0,"));
+      }
+      else{
+        _Serial->print(F("AT+NSOST=1,"));
+      }
       _Serial->print(serverIP);
       _Serial->print(F(",5683,"));
 
@@ -864,7 +887,12 @@ void Magellan_BC95_lite::print_rsp_Type(String Msgstr,unsigned int msgID)
     en_get=true;
 
     if(debug) Serial.println(F("Send ack"));
-    _Serial->print(F("AT+NSOST=0,"));
+    if(bc95){
+      _Serial->print(F("AT+NSOST=0,"));
+    }
+    else{
+      _Serial->print(F("AT+NSOST=1,"));
+    }
     _Serial->print(serverIP);
     _Serial->print(F(",5683,"));
     _Serial->print(F("4"));
@@ -988,7 +1016,12 @@ void Magellan_BC95_lite:: waitResponse()
   unsigned long current=millis();
   if(en_chk_buff && (current-previous>=500) && !(_Serial->available()))
   {
-      _Serial->println(F("AT+NSORF=0,512"));
+      if(bc95) {
+        _Serial->println(F("AT+NSORF=0,512"));
+      }
+      else{
+        _Serial->println(F("AT+NSORF=1,512"));
+      } 
       cnt_cmdgetrsp++;
       previous=current;
   }
@@ -1017,7 +1050,12 @@ void Magellan_BC95_lite:: waitResponse()
           if(debug) Serial.print(F("send_NSOMI "));
           if(data_input.indexOf(F("+NSONMI:"))!=-1)
           {
-            _Serial->println(F("AT+NSORF=0,512"));
+            if(bc95) {
+              _Serial->println(F("AT+NSORF=0,512"));
+            }
+            else{
+              _Serial->println(F("AT+NSORF=1,512"));
+            } 
             data_input=F("");
             send_NSOMI=true;
             if(printstate) Serial.println();
@@ -1030,7 +1068,7 @@ void Magellan_BC95_lite:: waitResponse()
 
           end=false;
           
-          if(data_input.indexOf(F("0,119.31.104.1"))!=-1)
+          if(data_input.indexOf(F("0,119.31.104.1"))!=-1 || data_input.indexOf(F("1,119.31.104.1"))!=-1)
           {
             int index1 = data_input.indexOf(F(","));
             if(index1!=-1) 
@@ -1052,7 +1090,12 @@ void Magellan_BC95_lite:: waitResponse()
               index2 = data_input.indexOf(F(","),index1+1);
               if(data_input.substring(index1+1,index2)!="0"){
                   if(debug) Serial.println(F("found buffer"));
-                  _Serial->println(F("AT+NSORF=0,512"));
+                  if(bc95) {
+                    _Serial->println(F("AT+NSORF=0,512"));
+                  }
+                  else{
+                    _Serial->println(F("AT+NSORF=1,512"));
+                  } 
                   cnt_rcv_resp++;
               }
               else{

@@ -123,6 +123,7 @@ private:
 	bool more_flag=false;
 	bool hw_connected=false;
 	bool token_error_report=true;
+	bool bc95;
 	//################### Parameter ####################
 	//unsigned int resp_cnt=0;
 	unsigned int resp_msgID=0;
